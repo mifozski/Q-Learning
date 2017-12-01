@@ -8,84 +8,46 @@ public class AgentMotor : MonoBehaviour {
     public float smoothMoveTime = .1f;
     public float turnSpeed = 8;
 
-    LineRenderer lineRenderer;
-    int lengthOfLineRenderer = 20;
+    float angle;
+    float smoothInputMagniture;
+    float smoothMoveVelocity;
+    Vector3 velocity;
 
-    [SerializeField]
-    Light spotLight;
-    float viewAngle;
-    [SerializeField]
-    float viewDistance = 2;
+    Rigidbody rigidBody;
 
-    [SerializeField]
-    GameObject arrow;
+	void Start ()
+    {
+        angle = Vector3.Angle(Vector3.forward, transform.forward);
 
-	// Use this for initialization
-	void Start () {
-        viewAngle = spotLight.spotAngle;
-
-        Debug.LogFormat("viewAngle: " + viewAngle);
-
-        lineRenderer = gameObject.AddComponent<LineRenderer>();
-        lineRenderer.material = new Material(Shader.Find("Particles/Additive"));
-        lineRenderer.startWidth = lineRenderer.endWidth = 0.02f;
-        lineRenderer.positionCount = lengthOfLineRenderer + 2;
-        lineRenderer.numCornerVertices = 2;
-        lineRenderer.useWorldSpace = false;
-
-        // spotLight.cullingMask
-
-        var points = new Vector3[lengthOfLineRenderer + 2];
-
-        points[0] = Vector3.zero;
-        float step = viewAngle / (lengthOfLineRenderer - 1);
-        float startAngle = viewAngle / 2 - viewAngle;
-        for (int i = 0; i < lengthOfLineRenderer; i++)
-        {
-            Debug.Log("angle: " + (startAngle + i * step));
-            points[i + 1] = new Vector3(viewDistance * Mathf.Sin((startAngle + i * step) * Mathf.Deg2Rad), 0.0f, viewDistance * Mathf.Cos((startAngle + i * step) * Mathf.Deg2Rad));
-            Debug.Log("i: " + i + " point: " + points[i + 1]);
-        }
-
-        points[lengthOfLineRenderer + 1] = Vector3.zero;
+        rigidBody = GetComponent<Rigidbody>();
     }
 	
-	// Update is called once per frame
 	void Update ()
     {
-        DrawWatchingSpotlight();
+        velocity = transform.forward * moveSpeed * smoothInputMagniture;
     }
 
-    private void DrawWatchingSpotlight()
+    void FixedUpdate()
     {
-        var points = new Vector3[lengthOfLineRenderer + 2];
-
-        points[0] = Vector3.zero;
-        float step = viewAngle / (lengthOfLineRenderer - 1);
-        float startAngle = viewAngle / 2 - viewAngle;
-        for (int i = 0; i < lengthOfLineRenderer; i++)
-        {
-            points[i + 1] = new Vector3(viewDistance * Mathf.Sin((startAngle + i * step) * Mathf.Deg2Rad), 0.0f, viewDistance * Mathf.Cos((startAngle + i * step) * Mathf.Deg2Rad));
-        }
-
-        points[lengthOfLineRenderer + 1] = Vector3.zero;
-
-        lineRenderer.SetPositions(points);
+        rigidBody.MoveRotation(Quaternion.Euler(Vector3.up * angle));
+        rigidBody.MovePosition(rigidBody.position + velocity * Time.deltaTime);
     }
 
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawRay(transform.position, transform.forward * viewDistance);
-        
-        float step = viewAngle / (lengthOfLineRenderer - 1);
-        float startAngle = viewAngle / 2 - viewAngle;
-        Vector3 prevPoint = transform.position;
-        for (int i = 0; i < lengthOfLineRenderer; i++)
-        {
-            var point = new Vector3(viewDistance * Mathf.Sin((startAngle + i * step) * Mathf.Deg2Rad), 0.0f, viewDistance * Mathf.Cos((startAngle + i * step) * Mathf.Deg2Rad));
-            Gizmos.DrawLine(prevPoint, point);
-            prevPoint = point;
-        }
-    }
+	public void Move(Vector3 direction)
+	{
+		direction = direction.normalized;
+		float inputMagnitude = direction.magnitude;
+		smoothInputMagniture = Mathf.SmoothDamp(smoothInputMagniture, inputMagnitude, ref smoothMoveVelocity, smoothMoveTime);
+
+		float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+		angle = Mathf.LerpAngle(angle, targetAngle, Time.deltaTime * turnSpeed * inputMagnitude);
+		transform.eulerAngles = Vector3.up * angle;
+
+		transform.Translate(transform.forward * moveSpeed * Time.deltaTime * smoothInputMagniture, Space.World);
+	}
+
+	public void MoveBackwards()
+	{
+		transform.Translate(-transform.forward * moveSpeed * Time.deltaTime, Space.World);
+	}
 }
