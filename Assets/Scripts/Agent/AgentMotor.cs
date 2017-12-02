@@ -33,13 +33,13 @@ public class AgentMotor : MonoBehaviour {
         rigidBody.MovePosition(rigidBody.position + velocity * Time.deltaTime);
     }
 
-	public void Move(Vector3 direction)
+	public void Move(Vector2 direction)
 	{
 		direction = direction.normalized;
 		float inputMagnitude = direction.magnitude;
 		smoothInputMagniture = Mathf.SmoothDamp(smoothInputMagniture, inputMagnitude, ref smoothMoveVelocity, smoothMoveTime);
 
-		float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+		float targetAngle = Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg;
 		angle = Mathf.LerpAngle(angle, targetAngle, Time.deltaTime * turnSpeed * inputMagnitude);
 		transform.eulerAngles = Vector3.up * angle;
 

@@ -2,6 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+class AgentControllerObserver
+{
+	public virtual void OnKill() {}
+}
+
 [RequireComponent(typeof(AgentMotor))]
 public class AgentController : MonoBehaviour {
 
@@ -19,9 +24,16 @@ public class AgentController : MonoBehaviour {
 
 	public Color originalSpotlightColor = new Color(34, 218, 65);
 
+	public AgentInternalState internalState = new AgentInternalState();
+	private AgentSettings settings = new AgentSettings();
+
+	List<AgentControllerObserver> observers = new List<AgentControllerObserver>();
+
 	void Start ()
 	{
 		motor = GetComponent<AgentMotor>();
+
+		visibilty = GetComponentInChildren<Visibilty>();
 
 		viewAngle = spotLight.spotAngle;
 
@@ -32,10 +44,10 @@ public class AgentController : MonoBehaviour {
 		lineRenderer.numCornerVertices = 2;
 		lineRenderer.useWorldSpace = false;
 
-		visibilty = GetComponentInChildren<Visibilty>();
-
 		if (gameObject.tag != "Player")
 			Destroy(GetComponent<Player>());
+		else
+			Destroy(GetComponent<AgentBrains>());
 	}
 	
 	void Update ()
@@ -44,16 +56,26 @@ public class AgentController : MonoBehaviour {
 		visibilty.SetVisibilityRadius(viewDistance);
 		visibilty.SetViewAngle(viewAngle);
 
-		DrawWatchingSpotlight();
+		DrawVisibilitySpotlight();
 
 		List<Transform> visibleAgents = visibilty.GetVisibleAgents();
 		if (visibleAgents.Count > 0)
 			spotLight.color = Color.red;
 		else
 			spotLight.color = originalSpotlightColor;
+
+		internalState.energy = Mathf.Max(internalState.energy - Time.deltaTime * settings.energyDepletionSpeed, 0.0f);
 	}
 
-	private void DrawWatchingSpotlight()
+	void OnGui()
+	{
+		Vector2 targetPos;
+ 		targetPos = Camera.main.WorldToScreenPoint (transform.position);
+       
+		GUI.Box(new Rect(targetPos.x, Screen.height - 50, 60, 20), 10 + "/" + 20);
+	}
+
+	private void DrawVisibilitySpotlight()
 	{
 		var points = new Vector3[lengthOfLineRenderer + 2];
 
@@ -86,7 +108,7 @@ public class AgentController : MonoBehaviour {
 		}
 	}
 
-	public void Move(Vector3 direction)
+	public void Move(Vector2 direction)
 	{
 		motor.Move(direction);
 	}
@@ -95,5 +117,20 @@ public class AgentController : MonoBehaviour {
 	{
 		if (move)
 			motor.MoveBackwards();
+	}
+
+	public int GetVisibleEnemiesNum()
+	{
+		return visibilty.GetVisibleAgentNum();
+	}
+
+	public AgentInternalState GetInternalState()
+	{
+		return internalState;
+	}
+
+	public void Reset()
+	{
+		internalState.Reset();
 	}
 }

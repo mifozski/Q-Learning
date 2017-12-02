@@ -23,6 +23,6 @@ public class Player : MonoBehaviour {
 			return;
 		}
 
-		agentController.Move(new Vector3(Input.GetAxisRaw("Horizontal"), 0f, Input.GetAxisRaw("Vertical")));
+		agentController.Move(new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")));
 	}
 }

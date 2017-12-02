@@ -46,6 +46,11 @@ public class Visibilty : MonoBehaviour {
 		return visibleAgents;
     }
 
+	public int GetVisibleAgentNum()
+	{
+		return visibleAgents.Count;
+	}
+
     bool IsAgentVisible(Transform agent)
     {
         if (agent == null)
