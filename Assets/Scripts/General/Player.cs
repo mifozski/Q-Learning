@@ -7,8 +7,6 @@ public class Player : MonoBehaviour {
 
 	AgentController agentController;
 
-    
-
     // Use this for initialization
 		void Start () {
 			agentController = GetComponent<AgentController>();
@@ -24,5 +22,7 @@ public class Player : MonoBehaviour {
 		}
 
 		agentController.Move(new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")));
+
+		Camera.main.transform.position = new Vector3(transform.position.x, Camera.main.transform.position.y, transform.position.z);
 	}
 }

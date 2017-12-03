@@ -1,10 +1,18 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
-class AgentControllerObserver
+public interface AgentControllerObserver
 {
-	public virtual void OnKill() {}
+	void OnKill();
+
+	void OnDrawGui();
+}
+
+public interface AgentHearingListener
+{
+	void OnEmittedNoiseLevel(Transform agent, float volume);
 }
 
 [RequireComponent(typeof(AgentMotor))]
@@ -12,28 +20,42 @@ public class AgentController : MonoBehaviour {
 
 	AgentMotor motor;
 
+	[Header("Sensors")]
 	[SerializeField]
 	Light spotLight;
+	[SerializeField]
 	float viewAngle;
 	[SerializeField]
 	float viewDistance = 2;
-	Visibilty visibilty;
+	AgentVisibilty visibilty;
+	public Color originalSpotlightColor = new Color(34, 218, 65);
+
+	[SerializeField]
+	float hearingRadius = 5;
+	AgentHearing hearing;
 
 	LineRenderer lineRenderer;
 	int lengthOfLineRenderer = 20;
 
-	public Color originalSpotlightColor = new Color(34, 218, 65);
+	[Header("Unity Stuff")]
+	[SerializeField]
+	Image energyBar;
 
 	public AgentInternalState internalState = new AgentInternalState();
 	private AgentSettings settings = new AgentSettings();
 
+	AgentBrains brains;
+
 	List<AgentControllerObserver> observers = new List<AgentControllerObserver>();
+	List<AgentHearingListener> hearingListeners = new List<AgentHearingListener>();
 
 	void Start ()
 	{
 		motor = GetComponent<AgentMotor>();
 
-		visibilty = GetComponentInChildren<Visibilty>();
+		visibilty = GetComponentInChildren<AgentVisibilty>();
+
+		hearing = GetComponentInChildren<AgentHearing>();
 
 		viewAngle = spotLight.spotAngle;
 
@@ -45,16 +67,24 @@ public class AgentController : MonoBehaviour {
 		lineRenderer.useWorldSpace = false;
 
 		if (gameObject.tag != "Player")
+		{
 			Destroy(GetComponent<Player>());
+
+			brains = GetComponent<AgentBrains>();
+		}
 		else
 			Destroy(GetComponent<AgentBrains>());
 	}
 	
 	void Update ()
 	{
+		EmitNoise();
+		
 		viewAngle = spotLight.spotAngle;
 		visibilty.SetVisibilityRadius(viewDistance);
 		visibilty.SetViewAngle(viewAngle);
+
+		hearing.SetHearingRadius(hearingRadius);
 
 		DrawVisibilitySpotlight();
 
@@ -64,13 +94,27 @@ public class AgentController : MonoBehaviour {
 		else
 			spotLight.color = originalSpotlightColor;
 
+		DepleteEnergy();
+	}
+
+	void DepleteEnergy()
+	{
 		internalState.energy = Mathf.Max(internalState.energy - Time.deltaTime * settings.energyDepletionSpeed, 0.0f);
+		// energyBar.fillAmount = internalState.energy / 100.0f;
+	}
+
+	void EmitNoise()
+	{
+		foreach (AgentHearingListener listener in hearingListeners)
+		{
+			listener.OnEmittedNoiseLevel(transform, 0.5f * Time.deltaTime);
+		}
 	}
 
 	void OnGui()
 	{
 		Vector2 targetPos;
- 		targetPos = Camera.main.WorldToScreenPoint (transform.position);
+ 		targetPos = Camera.main.WorldToScreenPoint(transform.position);
        
 		GUI.Box(new Rect(targetPos.x, Screen.height - 50, 60, 20), 10 + "/" + 20);
 	}
@@ -119,9 +163,40 @@ public class AgentController : MonoBehaviour {
 			motor.MoveBackwards();
 	}
 
+	public float [] GetInputValues()
+	{
+		if (tag == "Agent")
+			return brains.GetLastInputs();
+		else
+			return new float [] {};
+	}
+
+	public float [] GetOutputValues()
+	{
+		if (tag == "Agent")
+			return brains.GetLastOuputs();
+		else
+			return new float [] {};
+	}
+
+	public float GetNormalizedEnergyLevel()
+	{
+		return internalState.energy / 100.0f;
+	}
+
 	public int GetVisibleEnemiesNum()
 	{
 		return visibilty.GetVisibleAgentNum();
+	}
+
+	public float GetHeardNoiseLevel()
+	{
+		return hearing.GetHeardNoiseLevel();
+	}
+
+	public float GetNormalizedAngleToNearestAgent()
+	{
+		return visibilty.GetNormalizedAngleToNearestAgent();
 	}
 
 	public AgentInternalState GetInternalState()
@@ -132,5 +207,16 @@ public class AgentController : MonoBehaviour {
 	public void Reset()
 	{
 		internalState.Reset();
+	}
+
+	public void AddHearingListener(AgentHearingListener listener)
+	{
+		if (hearingListeners.Contains(listener) == false)
+			hearingListeners.Add(listener);
+	}
+
+	public void RemoveHearingListener(AgentHearingListener listener)
+	{
+		hearingListeners.Remove(listener);
 	}
 }
