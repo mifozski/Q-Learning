@@ -5,7 +5,7 @@ using UnityEngine;
 
 using QLearning.MachineLearning.NeuralNetwork;
 
-public class AgentBrains : MonoBehaviour {
+public class AgentBrains : MonoBehaviour, AgentControllerListener {
 
 	NeuralNetwork nn;
 	AgentController controller;
@@ -43,19 +43,6 @@ public class AgentBrains : MonoBehaviour {
 	// Update is called once per frame
 	void Update ()
 	{
-		// 'Kill' agent if the energy is depleted
-		if (controller.GetInternalState().energy == 0.0f)
-		{
-			// 
-			totalReward -= -1.0f;
-
-			
-			
-			SceneManager.Get().KillAgent(gameObject);
-
-			totalReward = 0.0f;
-		}
-
 		// Evaluate output values
 		lastInput = new double [] {
 			controller.GetNormalizedEnergyLevel(),
@@ -85,6 +72,13 @@ public class AgentBrains : MonoBehaviour {
 		}
 
 		lastOutput = ouputs;
+	}
+
+	public void OnKill()
+	{
+		totalReward -= -1.0f;
+
+		totalReward = 0.0f;
 	}
 
 	public float [] GetLastInputs()

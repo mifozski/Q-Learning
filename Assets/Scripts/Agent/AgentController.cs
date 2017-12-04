@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public interface AgentControllerObserver
+public interface AgentControllerListener
 {
 	void OnKill();
-
-	void OnDrawGui();
 }
 
 public interface AgentHearingListener
@@ -46,7 +44,7 @@ public class AgentController : MonoBehaviour {
 
 	AgentBrains brains;
 
-	List<AgentControllerObserver> observers = new List<AgentControllerObserver>();
+	List<AgentControllerListener> listeners = new List<AgentControllerListener>();
 	List<AgentHearingListener> hearingListeners = new List<AgentHearingListener>();
 
 	void Start ()
@@ -78,6 +76,15 @@ public class AgentController : MonoBehaviour {
 	
 	void Update ()
 	{
+		// 'Kill' agent if the energy is depleted
+		if (internalState.energy == 0.0f && tag == "Agent")
+		{
+			foreach (AgentControllerListener listener in listeners)
+				listener.OnKill();
+
+			SceneManager.Get().KillAgent(gameObject);
+		}
+
 		EmitNoise();
 		
 		viewAngle = spotLight.spotAngle;

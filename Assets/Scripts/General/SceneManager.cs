@@ -59,8 +59,6 @@ public class SceneManager : MonoBehaviour {
 	void Update ()
     {
         UpdateSelectionIndicator();
-
-        UpdateSelectedAgentStatsPanel();
 	}
 
     void UpdateSelectionIndicator()
@@ -71,6 +69,11 @@ public class SceneManager : MonoBehaviour {
                 selectedObject.transform.rotation);
         }
     }
+
+	void OnGUI()
+	{
+		UpdateSelectedAgentStatsPanel();
+	}
 
     void UpdateSelectedAgentStatsPanel()
     {
@@ -102,8 +105,36 @@ public class SceneManager : MonoBehaviour {
     public void KillAgent(GameObject agent)
     {
 		GameObject randomSpawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
+
+		StartCoroutine(SpawnAgentAtFreeSpawnPoint(agent));
         SpawnAgent(randomSpawnPoint.transform, agent);
     }
+
+	IEnumerator SpawnAgentAtFreeSpawnPoint(GameObject agent)
+	{
+		foreach (GameObject spawnPoint in spawnPoints)
+		{
+			bool occupied = false;
+			BoxCollider boundingBox = spawnPoint.GetComponent<BoxCollider>();
+			Collider [] colliders = Physics.OverlapBox(spawnPoint.transform.position + boundingBox.center,
+								   boundingBox.size, spawnPoint.transform.rotation, LayerMask.NameToLayer("Agent"));
+			foreach (Collider collider in colliders)
+			{
+				if (collider.gameObject.tag != "Agent" && collider.gameObject.tag != "Player")
+					continue;
+
+				occupied = true;
+				break;
+			}
+
+			if (occupied)
+			{
+				SpawnAgent(spawnPoint.transform, agent);
+				yield break;
+			}
+		}
+		yield return new WaitForSeconds(.1f);
+	}
 
     private GameObject SpawnAgent(Transform spawnObject, GameObject agent)
     {
